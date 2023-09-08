@@ -69,10 +69,6 @@ class WidgetBase(EventDispatcher):
         :type: int
         """
         return self._width
-    
-    @width.setter
-    def width(self, value):
-        self.on_resize(value, self._height)
 
     @property
     def height(self):
@@ -81,18 +77,6 @@ class WidgetBase(EventDispatcher):
         :type: int
         """
         return self._height
-    
-    @height.setter
-    def height(self, value):
-        self.on_resize(self._width, value)
-
-    @property
-    def size(self):
-        return (self.width, self.height)
-
-    @size.setter
-    def size(self, size_value):
-        self.on_resize(size_value[0], size_value[1])
 
     @property
     def aabb(self):
@@ -119,10 +103,6 @@ class WidgetBase(EventDispatcher):
     @value.setter
     def value(self, value):
         raise NotImplementedError("Value depends on control type!")
-    
-    def on_resize(self, width, height):
-        self._width = width
-        self._height = height
 
     def _check_hit(self, x, y):
         return self._x < x < self._x + self._width and self._y < y < self._y + self._height
@@ -152,12 +132,6 @@ class WidgetBase(EventDispatcher):
         pass
 
     def on_text_motion_select(self, motion):
-        pass
-
-    def on_key_press(self, symbol, modifiers):
-        pass
-    
-    def on_key_release(self, symbol, modifiers):
         pass
 
 
@@ -240,10 +214,6 @@ class PushButton(WidgetBase):
             return
         self._sprite.image = self._hover_img if self._check_hit(x, y) else self._depressed_img
 
-    def on_resize(self, width, height):
-        super(PushButton, self).on_resize(width, height)
-        self._sprite.width = width
-        self._sprite.height = height
 
 PushButton.register_event_type('on_press')
 PushButton.register_event_type('on_release')
@@ -302,14 +272,13 @@ class Slider(WidgetBase):
             `group` : `~pyglet.graphics.Group`
                 Optional parent group of the slider.
         """
-        super().__init__(x, y, base.width, max(base.height, knob.height))
+        super().__init__(x, y, base.width, knob.height)
         self._edge = edge
         self._base_img = base
         self._knob_img = knob
         self._half_knob_width = knob.width / 2
         self._half_knob_height = knob.height / 2
         self._knob_img.anchor_y = knob.height / 2
-        self._knob_to_base_height_ratio = knob.height / base.height
 
         self._min_knob_x = x + edge
         self._max_knob_x = x + base.width - knob.width - edge
@@ -324,23 +293,10 @@ class Slider(WidgetBase):
         self._in_update = False
 
     def _update_position(self):
-        self._min_knob_x = self._x + self._edge
-        self._max_knob_x = self._x + self._base_spr.width - self._knob_spr.width - self._edge
         self._base_spr.position = self._x, self._y, 0
-        self._knob_spr.position = self._x + self._edge, self._y + self._base_spr.height / 2, 0
+        self._knob_spr.position = self._x + self._edge, self._y + self._base_img.height / 2, 0
         self.value = self._value
 
-    def on_resize(self, width, height):
-        super(Slider, self).on_resize(width, height)
-        self._base_spr.width = width
-        if self._knob_to_base_height_ratio > 1:
-            self._knob_spr.height = height
-            self._base_spr.height = height / self._knob_to_base_height_ratio
-        else:
-            self._base_spr.height = height
-            self._knob_spr.height = height * self._knob_to_base_height_ratio
-        self._update_position()
-        
     @property
     def value(self):
         return self._value
@@ -508,17 +464,6 @@ class TextEntry(WidgetBase):
             self._caret.on_mouse_press(x, y, buttons, modifiers)
         else:
             self._set_focus(False)
-
-    def on_resize(self, width, height):
-        super(TextEntry, self).on_resize(width, height)
-        self._layout.width, self._layout.height = width, height
-        self._outline.width, self._outline.height = width + self._pad * 2, height + self._pad * 2
-
-    def on_key_press(self, symbol, modifiers):
-        if not self._focus:
-            return
-        if symbol == pyglet.window.key.A and modifiers & pyglet.window.key.MOD_CTRL:
-            self._caret.select_all()
 
     def on_text(self, text):
         if not self.enabled:

@@ -385,7 +385,8 @@ class Caret:
         self._update(line=line)
         self._next_attributes.clear()
 
-    def select_all(self):
+    def select_all(self) -> None:
+        """Select all text in this text entry field."""
         self._mark = 0
         self._position = len(self._layout.document.text)
         self._update()
@@ -513,9 +514,14 @@ class Caret:
         GUI toolkits should filter keyboard and text events by widget focus
         before invoking this handler.
         """
-        if self.mark is None:
-            self.mark = self.position
-        self.on_text_motion(motion, True)
+        # Skip on_text_motion call for efficiency
+        if motion == key.MOTION_SELECT_ALL:
+            self.select_all()
+            self._nudge()
+        else:  # We use an actual text motion
+            if self.mark is None:
+                self.mark = self.position
+            self.on_text_motion(motion, True)
         return event.EVENT_HANDLED
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
